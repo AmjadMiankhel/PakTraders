@@ -74,6 +74,17 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // TEMP DIAGNOSTIC — remove after investigating the Hostinger middleware response.
+  if (pathname === "/mwprobe") {
+    return new NextResponse("middleware-alive", {
+      status: 200,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "x-pt-mw": "probe",
+        "cache-control": "no-store",
+      },
+    });
+  }
+
   const dbg = request.nextUrl.searchParams.get("mwdbg");
   if (dbg === "text") {
     return new NextResponse("middleware-alive", {
@@ -153,5 +164,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/mwprobe"],
 };

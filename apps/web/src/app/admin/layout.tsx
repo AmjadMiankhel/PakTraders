@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { getCurrentUser, isAdmin } from "@/lib/auth";
+import { AccessDenied, AuthRequired } from "@/components/auth/auth-gate";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { initials } from "@paktenders/shared-utils";
 
@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/admin");
-  if (!isAdmin(user)) redirect("/dashboard");
+  if (!user) return <AuthRequired next="/admin" />;
+  if (!isAdmin(user)) return <AccessDenied />;
 
   return (
     <div className="min-h-[70vh] bg-surface">

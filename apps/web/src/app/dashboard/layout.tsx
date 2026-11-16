@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
 import { getCurrentUser, isAdmin } from "@/lib/auth";
+import { AuthRequired } from "@/components/auth/auth-gate";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { initials } from "@paktenders/shared-utils";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/dashboard");
+  if (!user) return <AuthRequired next="/dashboard" />;
 
   return (
     <div className="min-h-[70vh] bg-surface">
