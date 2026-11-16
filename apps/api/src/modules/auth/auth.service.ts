@@ -6,9 +6,9 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import argon2 from "argon2";
 import { createHash, randomBytes } from "node:crypto";
 import { loadEnv } from "@paktenders/config";
+import { hashPassword, verifyPassword } from "@paktenders/passwords";
 import type { AuthSession, AuthUser } from "@paktenders/shared-types";
 import { parseDurationSeconds } from "@paktenders/shared-utils";
 import type { LoginInput, RegisterInput } from "@paktenders/validation";
@@ -34,7 +34,7 @@ export class AuthService {
     if (existing) throw new ConflictException("An account with this email already exists");
 
     const userRole = await this.prisma.client.role.findUnique({ where: { code: "USER" } });
-    const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
+    const passwordHash = await hashPassword(input.password);
 
     const user = await this.prisma.client.user.create({
       data: {
@@ -70,7 +70,7 @@ export class AuthService {
       throw new UnauthorizedException("This account is not available");
     }
 
-    const valid = await argon2.verify(user.passwordHash, input.password);
+    const valid = await verifyPassword(user.passwordHash, input.password);
     if (!valid) throw new UnauthorizedException("Invalid email or password");
 
     await this.prisma.client.user.update({
@@ -166,7 +166,7 @@ export class AuthService {
       throw new BadRequestException("This reset link has already been used");
     }
 
-    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    const passwordHash = await hashPassword(password);
     await this.prisma.client.$transaction([
       this.prisma.client.user.update({
         where: { id: user.id },

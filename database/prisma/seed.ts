@@ -19,7 +19,7 @@
  */
 import { resolve } from "node:path";
 import { config as loadDotenv } from "dotenv";
-import argon2 from "argon2";
+import { hashPassword } from "@paktenders/passwords";
 import { PrismaClient, type Prisma } from "@prisma/client";
 
 loadDotenv({ path: resolve(__dirname, "../../.env") });
@@ -1069,7 +1069,7 @@ async function main() {
   }
 
   /* bootstrap super admin */
-  const passwordHash = await argon2.hash(ADMIN_PASSWORD, { type: argon2.argon2id });
+  const passwordHash = await hashPassword(ADMIN_PASSWORD);
   const admin = await prisma.user.upsert({
     where: { email: ADMIN_EMAIL },
     update: { fullName: "Platform Super Admin", status: "ACTIVE", emailVerifiedAt: new Date() },

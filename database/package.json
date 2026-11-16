@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
-    "argon2": "0.45.2",
+    "@paktenders/passwords": "workspace:*",
     "dotenv": "18.0.10"
   },
   "devDependencies": {
