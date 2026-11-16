@@ -233,6 +233,8 @@ Migrations are **not** run during the Hostinger build. Run `pnpm db:deploy` befo
 | Build fails: `next.config.ts` / TypeScript errors | Node 18 selected | Use Node 22 or 24 |
 | Build fails: "Next.js build produced no standalone server" | The Next.js preset was used on this monorepo | Use application type **Other** with `hostinger/web-server.cjs` |
 | Build fails: heap out of memory | Plan memory limit | Move to a Cloud plan, or build locally and deploy an archive |
+| Build fails: `Turbopack is not supported on this platform` | Hostinger glibc 2.28, Turbopack needs 2.29 | Keep `next build --webpack` in `apps/web/package.json` |
+| `/dashboard` or `/admin` returns `200` with an empty body | LiteSpeed + CDN drops a bodiless redirect whose `Location` is a relative path | `src/proxy.ts` builds an absolute login URL with a tiny HTML body — keep it that way |
 | App not responding after a green build | Wrong port or entry file | Entry must be `hostinger/web-server.cjs` (web) / `hostinger/api-server.cjs` (API); both honour `PORT` |
 | `502` / blank page | API crashed on boot | Open **Runtime Logs**; the usual cause is a missing `DATABASE_URL` or JWT secret |
 | Home page renders but all lists are empty | Website cannot reach the API | Set `NEXT_PUBLIC_API_URL` **and** `API_INTERNAL_URL` to the public API URL, then redeploy the website |
