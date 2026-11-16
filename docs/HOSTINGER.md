@@ -81,6 +81,24 @@ pnpm build:hostinger:api   # turbo run build --filter=@paktenders/api...
 
 Build limits: 15 minutes for install and 15 minutes for the build script. If the Next.js build is killed for memory, move to a Cloud plan.
 
+### Why the website builds with Webpack, not Turbopack
+
+Hostinger runs CloudLinux 8 (glibc 2.28). Next.js 16's native SWC/Turbopack binary
+(`@next/swc-linux-x64-gnu`) is linked against glibc 2.29, so the loader falls back to
+the WebAssembly package and Turbopack aborts with:
+
+```
+Error: Turbopack is not supported on this platform (linux/x64) because native
+bindings are not available.
+```
+
+`apps/web` therefore builds with `next build --webpack`. Webpack uses the WASM SWC
+bindings that do load on this host, and the resulting `.next` output is served by
+`hostinger/web-server.cjs` exactly like a Turbopack build. `next dev` still uses
+Turbopack locally. Do not "simplify" the build script back to plain `next build`
+without re-testing on the host.
+
+
 ### Domains
 
 Give the API its own hostname, for example `api.paktenders.pk` or a second Hostinger subdomain. Never point the website and the API at the same hostname: both need port 443 and Hostinger serves one Web App per domain.
