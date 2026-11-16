@@ -72,6 +72,32 @@ function withCookie(cookieHeader: string, name: string, value: string): string {
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // TEMP DIAGNOSTIC — remove after investigating the Hostinger middleware response.
+  const dbg = request.nextUrl.searchParams.get("mwdbg");
+  if (dbg === "text") {
+    return new NextResponse("middleware-alive", {
+      status: 200,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "x-pt-mw": "text",
+        "cache-control": "no-store",
+      },
+    });
+  }
+  if (dbg === "redir") {
+    return new NextResponse("mw-redirect", {
+      status: 307,
+      headers: {
+        location: "https://upward-seashell-quetzal-73.hostingersite.com/login?mwdbg=1",
+        "content-type": "text/html; charset=utf-8",
+        "x-pt-mw": "redir",
+        "cache-control": "no-store",
+      },
+    });
+  }
+  if (dbg === "next") return NextResponse.next();
+
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
 
