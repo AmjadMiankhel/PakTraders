@@ -1,0 +1,55 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# env & secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# testing
+coverage/
+playwright-report/
+test-results/
+
+# prisma generated client
+database/generated/
+
+# expo
+.expo/
+.expo-shared/
+apps/mobile/android/
+apps/mobile/ios/
+
+# os
+.DS_Store
+Thumbs.db
+
+# uploads / local storage
+storage/
+uploads/
+
+# tesseract language data (downloaded at runtime)
+*.traineddata
+
+# local scratch scripts
+apps/api/extracttest.cjs
+apps/api/ocrtest.cjs
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/

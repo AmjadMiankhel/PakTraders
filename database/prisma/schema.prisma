@@ -1,0 +1,1712 @@
+// Pak Tenders — PostgreSQL schema (Prisma)
+// Money is stored as Decimal(14,2) in PKR. All timestamps are UTC; the
+// application renders them in Asia/Karachi (PKT, UTC+5).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserStatus {
+  PENDING_EMAIL_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum TenderStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  PUBLISHED
+  CLOSED
+  CANCELLED
+  ARCHIVED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  DEMO
+}
+
+enum TenderType {
+  GOVERNMENT
+  PRIVATE
+  NGO
+  AUCTION
+  CONSULTANCY
+  NEWSPAPER
+}
+
+enum TenderDocumentType {
+  TENDER_NOTICE
+  BIDDING_DOCUMENT
+  CORRIGENDUM
+  ADDENDUM
+  RESULT
+  OTHER
+}
+
+enum TenderUpdateType {
+  CORRIGENDUM
+  DEADLINE_EXTENSION
+  CANCELLATION
+  CLARIFICATION
+  NOTICE
+  RESULT
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  TRIAL
+  EXPIRED
+  CANCELLED
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  JAZZCASH
+  EASYPAISA
+  BANK_TRANSFER
+  CARD
+  MANUAL
+  OTHER
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+  WHATSAPP
+  SMS
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+enum AlertFrequency {
+  INSTANT
+  DAILY
+  WEEKLY
+}
+
+enum ChatbotRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+enum ChatbotPlatform {
+  WEB
+  ANDROID
+  IOS
+}
+
+enum ContentStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+enum AppPlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+enum IntegrationStatus {
+  NOT_CONFIGURED
+  CONFIGURED
+  CONNECTED
+  DISABLED
+  ERROR
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
+// ---------------------------------------------------------------------------
+// Automated tender collection & monitoring
+// ---------------------------------------------------------------------------
+
+enum SourceCategory {
+  FEDERAL
+  PROVINCIAL
+  AJK
+  GILGIT_BALTISTAN
+  DEPARTMENT
+  HOSPITAL
+  UNIVERSITY
+  DEVELOPMENT_AUTHORITY
+  PUBLIC_SECTOR
+  NEWSPAPER
+  PRIVATE
+}
+
+enum CollectionMethod {
+  OFFICIAL_API
+  AUTHORIZED_FEED
+  RSS
+  WEBSITE_MONITOR
+  DATASET
+  EMAIL_FEED
+  PDF_AD
+  OCR
+  MANUAL_IMPORT
+}
+
+enum SourceStatus {
+  ACTIVE
+  PAUSED
+  DEGRADED
+  DISABLED
+  PENDING_REVIEW
+}
+
+enum SourceRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  SKIPPED
+  CANCELLED
+}
+
+enum SourceRunTrigger {
+  SCHEDULE
+  MANUAL
+  RETRY
+  WEBHOOK
+}
+
+enum IngestStatus {
+  NEW
+  UPDATED
+  DUPLICATE
+  NEEDS_REVIEW
+  PUBLISHED
+  REJECTED
+  FAILED
+}
+
+enum ExtractionFieldSource {
+  SOURCE
+  AI
+  RULE
+  MANUAL
+}
+
+enum DuplicateMatchType {
+  EXACT_SOURCE_ID
+  EXACT_REFERENCE
+  EXACT_DOCUMENT
+  EXACT_URL
+  FUZZY
+}
+
+enum DuplicateDecision {
+  PENDING
+  MERGED
+  KEPT_SEPARATE
+  IGNORED
+}
+
+enum OcrStatus {
+  NOT_REQUIRED
+  PENDING
+  COMPLETED
+  FAILED
+  UNSUPPORTED
+}
+
+// ---------------------------------------------------------------------------
+// Identity, roles, companies
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique
+  passwordHash    String
+  fullName        String
+  phone           String?
+  status          UserStatus @default(PENDING_EMAIL_VERIFICATION)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  profile             UserProfile?
+  preference          UserPreference?
+  roles               UserRole[]
+  sessions            Session[]
+  ownedCompanies      Company[]                 @relation("CompanyOwner")
+  companyMemberships  CompanyMember[]
+  savedTenders        SavedTender[]
+  savedSearches       SavedSearch[]
+  alertRules          AlertRule[]
+  notifications       Notification[]
+  notificationPref    NotificationPreference?
+  reminders           Reminder[]
+  supportTickets      SupportTicket[]           @relation("TicketRequester")
+  assignedTickets     SupportTicket[]           @relation("TicketAssignee")
+  subscriptions       Subscription[]
+  payments            Payment[]
+  invoices            Invoice[]
+  refunds             Refund[]
+  couponRedemptions   CouponRedemption[]
+  conversations       ChatbotConversation[]
+  chatbotFeedback     ChatbotFeedback[]
+  chatbotUsage        ChatbotUsageLog[]
+  devices             Device[]
+  pushTokens          PushToken[]
+  downloads           TenderDocumentDownload[]
+  auditLogs           AuditLog[]
+  blogPosts           BlogPost[]
+  tendersCreated      Tender[]                  @relation("TenderCreator")
+  tenderUpdates       TenderUpdate[]
+  tenderVerifications TenderVerification[]
+  tenderStatusChanges TenderStatusHistory[]
+  documentsUploaded   TenderDocument[]
+  paymentsVerified    Payment[]                 @relation("PaymentVerifier")
+  refundsProcessed    Refund[]                  @relation("RefundProcessor")
+  importJobs          ImportJob[]
+  settingsUpdated     SystemSetting[]
+  deliveryLogs        NotificationDeliveryLog[]
+  duplicateReviews    TenderDuplicateReview[]   @relation("DuplicateReviewer")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserProfile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @db.Uuid
+  avatarUrl          String?
+  jobTitle           String?
+  bio                String?
+  provinceId         String?  @db.Uuid
+  cityId             String?  @db.Uuid
+  businessCategories String[] @default([])
+  preferredKeywords  String[] @default([])
+  locale             String   @default("en")
+  timezone           String   @default("Asia/Karachi")
+  marketingOptIn     Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  province Province? @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  city     City?     @relation(fields: [cityId], references: [id], onDelete: SetNull)
+
+  @@map("user_profiles")
+}
+
+model UserPreference {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @unique @db.Uuid
+  theme               String   @default("system")
+  language            String   @default("en")
+  pushEnabled         Boolean  @default(true)
+  emailEnabled        Boolean  @default(true)
+  calendarDefaultView String   @default("month")
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Company {
+  id                 String             @id @default(uuid()) @db.Uuid
+  name               String
+  slug               String             @unique
+  ntn                String?
+  strn               String?
+  description        String?
+  website            String?
+  email              String?
+  phone              String?
+  logoUrl            String?
+  provinceId         String?            @db.Uuid
+  cityId             String?            @db.Uuid
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  ownerId            String             @db.Uuid
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+
+  owner    User            @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  province Province?       @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  city     City?           @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  members  CompanyMember[]
+
+  @@index([ownerId])
+  @@index([verificationStatus])
+  @@map("companies")
+}
+
+model CompanyMember {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  userId    String   @db.Uuid
+  role      String   @default("MEMBER") // OWNER | ADMIN | MEMBER
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+  @@index([userId])
+  @@map("company_members")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Geography & organizations
+// ---------------------------------------------------------------------------
+
+model Province {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  cities      City[]
+  departments Department[]
+  tenders     Tender[]
+  companies   Company[]
+  profiles    UserProfile[]
+  newspapers  Newspaper[]
+  authorities ProcurementAuthority[]
+  sources     TenderSource[]
+
+  @@map("provinces")
+}
+
+model City {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String
+  provinceId String   @db.Uuid
+  isMajor    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  province    Province      @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  departments Department[]
+  tenders     Tender[]
+  companies   Company[]
+  profiles    UserProfile[]
+
+  @@unique([provinceId, slug])
+  @@index([provinceId])
+  @@map("cities")
+}
+
+model Department {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String   @unique
+  shortName  String?
+  type       String   @default("GOVERNMENT") // FEDERAL | PROVINCIAL | DISTRICT | PUBLIC_SECTOR | PRIVATE | NGO | OTHER
+  website    String?
+  provinceId String?  @db.Uuid
+  cityId     String?  @db.Uuid
+  parentId   String?  @db.Uuid
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  province Province?    @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  city     City?        @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Department[] @relation("DepartmentHierarchy")
+  tenders  Tender[]
+
+  @@index([provinceId])
+  @@index([type])
+  @@map("departments")
+}
+
+model ProcurementAuthority {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String   @unique
+  website    String?
+  provinceId String?  @db.Uuid
+  createdAt  DateTime @default(now())
+
+  province Province?      @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  sources  TenderSource[]
+  tenders  Tender[]
+
+  @@map("procurement_authorities")
+}
+
+model Newspaper {
+  id         String  @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String  @unique
+  website    String?
+  provinceId String? @db.Uuid
+  isActive   Boolean @default(true)
+
+  province Province?      @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  sources  TenderSource[]
+  tenders  Tender[]
+
+  @@map("newspapers")
+}
+
+model TenderSource {
+  id                  String           @id @default(uuid()) @db.Uuid
+  code                String           @unique @default(uuid())
+  name                String
+  slug                String           @unique
+  type                String           @default("OFFICIAL_WEBSITE") // OFFICIAL_WEBSITE | NEWSPAPER | API | FEED | MANUAL | LICENSED_PROVIDER
+  category            SourceCategory   @default(FEDERAL)
+  collectionMethod    CollectionMethod @default(MANUAL_IMPORT)
+  connectorKey        String           @default("manual")
+  url                 String?
+  baseUrl             String?
+  authorityId         String?          @db.Uuid
+  newspaperId         String?          @db.Uuid
+  provinceId          String?          @db.Uuid
+  isVerified          Boolean          @default(false)
+  isEnabled           Boolean          @default(false)
+  status              SourceStatus     @default(PENDING_REVIEW)
+  priority            Int              @default(50)
+  scheduleMinutes     Int              @default(60)
+  rateLimitPerMinute  Int              @default(6)
+  maxPages            Int              @default(3)
+  respectRobots       Boolean          @default(true)
+  requiresAuth        Boolean          @default(false)
+  autoPublish         Boolean          @default(false)
+  minConfidence       Float            @default(0.75)
+  licenseNotes        String?
+  termsUrl            String?
+  accessNotes         String?
+  configJson          Json?
+  lastSyncedAt        DateTime?
+  lastRunAt           DateTime?
+  lastSuccessAt       DateTime?
+  nextRunAt           DateTime?
+  lastError           String?
+  consecutiveFailures Int              @default(0)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  authority ProcurementAuthority? @relation(fields: [authorityId], references: [id], onDelete: SetNull)
+  newspaper Newspaper?            @relation(fields: [newspaperId], references: [id], onDelete: SetNull)
+  province  Province?             @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  tenders   Tender[]
+  runs      SourceRun[]
+  documents SourceDocument[]
+  imports   TenderImport[]
+
+  @@index([isEnabled, nextRunAt])
+  @@index([status])
+  @@index([category])
+  @@map("tender_sources")
+}
+
+// ---------------------------------------------------------------------------
+// Tender core
+// ---------------------------------------------------------------------------
+
+model Category {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String
+  slug            String   @unique
+  description     String?
+  icon            String?
+  parentId        String?  @db.Uuid
+  seoTitle        String?
+  metaDescription String?
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  parent   Category?   @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[]  @relation("CategoryHierarchy")
+  tenders  Tender[]
+  alerts   AlertRule[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Tender {
+  id                   String             @id @default(uuid()) @db.Uuid
+  slug                 String             @unique
+  title                String
+  referenceNumber      String?
+  description          String
+  summary              String?
+  categoryId           String             @db.Uuid
+  departmentId         String             @db.Uuid
+  provinceId           String             @db.Uuid
+  cityId               String?            @db.Uuid
+  sourceId             String?            @db.Uuid
+  authorityId          String?            @db.Uuid
+  newspaperId          String?            @db.Uuid
+  tenderType           TenderType         @default(GOVERNMENT)
+  status               TenderStatus       @default(DRAFT)
+  verificationStatus   VerificationStatus @default(UNVERIFIED)
+  publishedAt          DateTime?
+  closingAt            DateTime?
+  openingAt            DateTime?
+  estimatedValue       Decimal?           @db.Decimal(14, 2)
+  currency             String             @default("PKR")
+  eligibility          String?
+  bidSecurityAmount    Decimal?           @db.Decimal(14, 2)
+  bidSecurityDetails   String?
+  requiredDocuments    String[]           @default([])
+  contactName          String?
+  contactEmail         String?
+  contactPhone         String?
+  contactAddress       String?
+  originalUrl          String?
+  originalDocumentUrl  String?
+  sourceAttribution    String?
+  sourceExternalId     String?
+  sourceContentHash    String?
+  sourceMetadata       Json?
+  extractionConfidence Float?
+  needsReview          Boolean            @default(false)
+  lastCheckedAt        DateTime?
+  lastChangedAt        DateTime?
+  isDemo               Boolean            @default(false)
+  isFeatured           Boolean            @default(false)
+  viewCount            Int                @default(0)
+  createdById          String?            @db.Uuid
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  deletedAt            DateTime?
+
+  category   Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  department Department            @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  province   Province              @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  city       City?                 @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  source     TenderSource?         @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  authority  ProcurementAuthority? @relation(fields: [authorityId], references: [id], onDelete: SetNull)
+  newspaper  Newspaper?            @relation(fields: [newspaperId], references: [id], onDelete: SetNull)
+  createdBy  User?                 @relation("TenderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  documents           TenderDocument[]
+  updates             TenderUpdate[]
+  statusHistory       TenderStatusHistory[]
+  verifications       TenderVerification[]
+  savedBy             SavedTender[]
+  reminders           Reminder[]
+  provenance          TenderProvenance[]
+  imports             TenderImport[]
+  sourceDocuments     SourceDocument[]
+  duplicateReviews    TenderDuplicateReview[] @relation("DuplicatePrimary")
+  duplicateCandidates TenderDuplicateReview[] @relation("DuplicateCandidate")
+
+  @@index([status, closingAt])
+  @@index([publishedAt])
+  @@index([categoryId])
+  @@index([provinceId])
+  @@index([cityId])
+  @@index([departmentId])
+  @@index([tenderType])
+  @@index([isDemo])
+  @@index([sourceId, referenceNumber])
+  @@index([sourceExternalId])
+  @@index([needsReview])
+  @@map("tenders")
+}
+
+model TenderDocument {
+  id                   String             @id @default(uuid()) @db.Uuid
+  tenderId             String             @db.Uuid
+  title                String
+  type                 TenderDocumentType @default(BIDDING_DOCUMENT)
+  fileUrl              String
+  fileName             String?
+  fileSize             Int?
+  mimeType             String?
+  pageCount            Int?
+  extractedText        String?
+  originalUrl          String?
+  sha256               String?
+  ocrUsed              Boolean            @default(false)
+  extractionConfidence Float?
+  pageReferences       Json?
+  isPublic             Boolean            @default(true)
+  uploadedById         String?            @db.Uuid
+  createdAt            DateTime           @default(now())
+
+  tender     Tender                   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  uploadedBy User?                    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  downloads  TenderDocumentDownload[]
+
+  @@index([tenderId])
+  @@map("tender_documents")
+}
+
+model TenderDocumentDownload {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @db.Uuid
+  userId     String?  @db.Uuid
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  document TenderDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([documentId])
+  @@map("tender_document_downloads")
+}
+
+model TenderUpdate {
+  id          String           @id @default(uuid()) @db.Uuid
+  tenderId    String           @db.Uuid
+  title       String
+  body        String
+  updateType  TenderUpdateType @default(NOTICE)
+  publishedAt DateTime         @default(now())
+  sourceUrl   String?
+  createdById String?          @db.Uuid
+  createdAt   DateTime         @default(now())
+
+  tender    Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([tenderId])
+  @@map("tender_updates")
+}
+
+model TenderStatusHistory {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenderId    String        @db.Uuid
+  fromStatus  TenderStatus?
+  toStatus    TenderStatus
+  reason      String?
+  changedById String?       @db.Uuid
+  createdAt   DateTime      @default(now())
+
+  tender    Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  changedBy User?  @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([tenderId])
+  @@map("tender_status_history")
+}
+
+model TenderVerification {
+  id           String             @id @default(uuid()) @db.Uuid
+  tenderId     String             @db.Uuid
+  verifiedById String?            @db.Uuid
+  status       VerificationStatus
+  notes        String?
+  createdAt    DateTime           @default(now())
+
+  tender     Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  verifiedBy User?  @relation(fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@index([tenderId])
+  @@map("tender_verifications")
+}
+
+// ---------------------------------------------------------------------------
+// Engagement
+// ---------------------------------------------------------------------------
+
+model SavedTender {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tenderId  String   @db.Uuid
+  note      String?
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenderId])
+  @@index([tenderId])
+  @@map("saved_tenders")
+}
+
+model SavedSearch {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  queryJson Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_searches")
+}
+
+model AlertRule {
+  id         String                @id @default(uuid()) @db.Uuid
+  userId     String                @db.Uuid
+  name       String
+  queryJson  Json
+  categoryId String?               @db.Uuid
+  frequency  AlertFrequency        @default(INSTANT)
+  channels   NotificationChannel[] @default([IN_APP, EMAIL])
+  isActive   Boolean               @default(true)
+  lastRunAt  DateTime?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("alert_rules")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  title     String
+  body      String
+  type      String    @default("SYSTEM")
+  dataJson  Json?
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs NotificationDeliveryLog[]
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id              String         @id @default(uuid()) @db.Uuid
+  userId          String         @unique @db.Uuid
+  emailEnabled    Boolean        @default(true)
+  pushEnabled     Boolean        @default(true)
+  inAppEnabled    Boolean        @default(true)
+  whatsappEnabled Boolean        @default(false)
+  smsEnabled      Boolean        @default(false)
+  digestFrequency AlertFrequency @default(DAILY)
+  quietHoursStart Int?
+  quietHoursEnd   Int?
+  updatedAt       DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model NotificationDeliveryLog {
+  id                String              @id @default(uuid()) @db.Uuid
+  notificationId    String?             @db.Uuid
+  userId            String?             @db.Uuid
+  channel           NotificationChannel
+  status            NotificationStatus  @default(QUEUED)
+  provider          String?
+  providerMessageId String?
+  error             String?
+  attemptedAt       DateTime            @default(now())
+
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@map("notification_delivery_logs")
+}
+
+model Reminder {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @db.Uuid
+  tenderId  String              @db.Uuid
+  remindAt  DateTime
+  channel   NotificationChannel @default(IN_APP)
+  status    NotificationStatus  @default(QUEUED)
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenderId, remindAt])
+  @@index([remindAt, status])
+  @@map("reminders")
+}
+
+model SupportTicket {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String?      @db.Uuid
+  subject      String
+  message      String
+  status       TicketStatus @default(OPEN)
+  priority     String       @default("NORMAL")
+  assignedToId String?      @db.Uuid
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  resolvedAt   DateTime?
+
+  user       User? @relation("TicketRequester", fields: [userId], references: [id], onDelete: SetNull)
+  assignedTo User? @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
+  @@map("support_tickets")
+}
+
+// ---------------------------------------------------------------------------
+// Subscriptions & payments
+// ---------------------------------------------------------------------------
+
+model SubscriptionPlan {
+  id               String          @id @default(uuid()) @db.Uuid
+  code             String          @unique
+  name             String
+  description      String?
+  pricePkr         Decimal         @db.Decimal(12, 2)
+  interval         BillingInterval @default(MONTH)
+  features         Json
+  chatbotQuota     Int             @default(10)
+  savedTenderLimit Int?
+  isActive         Boolean         @default(true)
+  isPopular        Boolean         @default(false)
+  sortOrder        Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  subscriptions Subscription[]
+  aiLimit       AiUsageLimit?
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id          String             @id @default(uuid()) @db.Uuid
+  userId      String             @db.Uuid
+  planId      String             @db.Uuid
+  status      SubscriptionStatus @default(PENDING)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  autoRenew   Boolean            @default(false)
+  cancelledAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments Payment[]
+  invoices Invoice[]
+
+  @@index([userId, status])
+  @@index([endsAt])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @db.Uuid
+  subscriptionId String?       @db.Uuid
+  amountPkr      Decimal       @db.Decimal(12, 2)
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  provider       String?
+  providerRef    String?
+  proofUrl       String?
+  verifiedById   String?       @db.Uuid
+  verifiedAt     DateTime?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subscription Subscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  verifiedBy   User?              @relation("PaymentVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  invoice      Invoice?
+  refunds      Refund[]
+  redemptions  CouponRedemption[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Invoice {
+  id             String   @id @default(uuid()) @db.Uuid
+  number         String   @unique
+  userId         String   @db.Uuid
+  subscriptionId String?  @db.Uuid
+  paymentId      String?  @unique @db.Uuid
+  subtotal       Decimal  @db.Decimal(12, 2)
+  tax            Decimal  @default(0) @db.Decimal(12, 2)
+  total          Decimal  @db.Decimal(12, 2)
+  issuedAt       DateTime @default(now())
+  pdfUrl         String?
+  createdAt      DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  payment      Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("invoices")
+}
+
+model Refund {
+  id            String    @id @default(uuid()) @db.Uuid
+  paymentId     String    @db.Uuid
+  userId        String    @db.Uuid
+  amount        Decimal   @db.Decimal(12, 2)
+  reason        String
+  status        String    @default("REQUESTED")
+  processedById String?   @db.Uuid
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  payment     Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  processedBy User?   @relation("RefundProcessor", fields: [processedById], references: [id], onDelete: SetNull)
+
+  @@map("refunds")
+}
+
+model Coupon {
+  id             String    @id @default(uuid()) @db.Uuid
+  code           String    @unique
+  discountType   String    @default("PERCENT") // PERCENT | FIXED
+  discountValue  Decimal   @db.Decimal(12, 2)
+  maxRedemptions Int?
+  redemptions    Int       @default(0)
+  validFrom      DateTime  @default(now())
+  validUntil     DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  redemptionsList CouponRedemption[]
+
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id         String   @id @default(uuid()) @db.Uuid
+  couponId   String   @db.Uuid
+  userId     String   @db.Uuid
+  paymentId  String?  @db.Uuid
+  redeemedAt DateTime @default(now())
+
+  coupon  Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@unique([couponId, userId])
+  @@map("coupon_redemptions")
+}
+
+// ---------------------------------------------------------------------------
+// Chatbot & AI
+// ---------------------------------------------------------------------------
+
+model ChatbotConversation {
+  id            String          @id @default(uuid()) @db.Uuid
+  userId        String?         @db.Uuid
+  platform      ChatbotPlatform @default(WEB)
+  title         String          @default("New conversation")
+  isArchived    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  lastMessageAt DateTime?
+
+  user     User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatbotMessage[]
+  usage    ChatbotUsageLog[]
+
+  @@index([userId])
+  @@index([lastMessageAt])
+  @@map("chatbot_conversations")
+}
+
+model ChatbotMessage {
+  id             String      @id @default(uuid()) @db.Uuid
+  conversationId String      @db.Uuid
+  role           ChatbotRole
+  content        String
+  tokensUsed     Int?
+  model          String?
+  sourcesJson    Json?
+  createdAt      DateTime    @default(now())
+
+  conversation ChatbotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  feedback     ChatbotFeedback[]
+
+  @@index([conversationId, createdAt])
+  @@map("chatbot_messages")
+}
+
+model ChatbotFeedback {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @db.Uuid
+  userId    String?  @db.Uuid
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  message ChatbotMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("chatbot_feedback")
+}
+
+model ChatbotKnowledgeArticle {
+  id        String        @id @default(uuid()) @db.Uuid
+  slug      String        @unique
+  title     String
+  content   String
+  category  String        @default("HELP")
+  tags      String[]      @default([])
+  status    ContentStatus @default(DRAFT)
+  isPublic  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("chatbot_knowledge_articles")
+}
+
+model ChatbotKnowledgeDocument {
+  id            String        @id @default(uuid()) @db.Uuid
+  title         String
+  fileUrl       String
+  extractedText String?
+  status        ContentStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("chatbot_knowledge_documents")
+}
+
+model ChatbotUsageLog {
+  id               String          @id @default(uuid()) @db.Uuid
+  userId           String?         @db.Uuid
+  conversationId   String?         @db.Uuid
+  platform         ChatbotPlatform @default(WEB)
+  promptTokens     Int             @default(0)
+  completionTokens Int             @default(0)
+  latencyMs        Int?
+  toolCalls        Json?
+  success          Boolean         @default(true)
+  errorCode        String?
+  createdAt        DateTime        @default(now())
+
+  user         User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  conversation ChatbotConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("chatbot_usage_logs")
+}
+
+model AiProviderConfig {
+  id              String   @id @default(uuid()) @db.Uuid
+  provider        String   @unique // openai | anthropic | google | openrouter | local
+  model           String
+  apiKeyEncrypted String?
+  baseUrl         String?
+  isEnabled       Boolean  @default(false)
+  isDefault       Boolean  @default(false)
+  maxTokens       Int      @default(1024)
+  temperature     Decimal  @default(0.2) @db.Decimal(3, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("ai_provider_configs")
+}
+
+model AiUsageLimit {
+  id                 String   @id @default(uuid()) @db.Uuid
+  planId             String   @unique @db.Uuid
+  dailyMessages      Int      @default(10)
+  monthlyMessages    Int      @default(100)
+  documentAssistance Boolean  @default(false)
+  modelTier          String   @default("standard")
+  updatedAt          DateTime @updatedAt
+
+  plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("ai_usage_limits")
+}
+
+// ---------------------------------------------------------------------------
+// Content & SEO
+// ---------------------------------------------------------------------------
+
+model BlogCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  posts BlogPost[]
+
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+  slug String @unique
+
+  posts BlogPostTag[]
+
+  @@map("blog_tags")
+}
+
+model BlogPost {
+  id              String        @id @default(uuid()) @db.Uuid
+  slug            String        @unique
+  title           String
+  excerpt         String?
+  content         String
+  coverImage      String?
+  categoryId      String?       @db.Uuid
+  authorId        String?       @db.Uuid
+  status          ContentStatus @default(DRAFT)
+  publishedAt     DateTime?
+  readingMinutes  Int           @default(5)
+  seoTitle        String?
+  metaDescription String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author   User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  tags     BlogPostTag[]
+
+  @@index([status, publishedAt])
+  @@map("blog_posts")
+}
+
+model BlogPostTag {
+  postId String @db.Uuid
+  tagId  String @db.Uuid
+
+  post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("blog_post_tags")
+}
+
+model Page {
+  id              String        @id @default(uuid()) @db.Uuid
+  slug            String        @unique
+  title           String
+  content         String
+  template        String        @default("standard")
+  status          ContentStatus @default(DRAFT)
+  seoTitle        String?
+  metaDescription String?
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("pages")
+}
+
+model Advertisement {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  placement String
+  imageUrl  String?
+  html      String?
+  targetUrl String?
+  startsAt  DateTime?
+  endsAt    DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  @@map("advertisements")
+}
+
+model Testimonial {
+  id         String   @id @default(uuid()) @db.Uuid
+  authorName String
+  company    String?
+  quote      String
+  avatarUrl  String?
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+model SeoMetadata {
+  id             String   @id @default(uuid()) @db.Uuid
+  path           String   @unique
+  title          String?
+  description    String?
+  canonical      String?
+  robots         String?
+  ogImage        String?
+  structuredData Json?
+  updatedAt      DateTime @updatedAt
+
+  @@map("seo_metadata")
+}
+
+model Redirect {
+  id         String   @id @default(uuid()) @db.Uuid
+  fromPath   String   @unique
+  toPath     String
+  statusCode Int      @default(301)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@map("redirects")
+}
+
+// ---------------------------------------------------------------------------
+// Mobile
+// ---------------------------------------------------------------------------
+
+model Device {
+  id         String      @id @default(uuid()) @db.Uuid
+  userId     String?     @db.Uuid
+  platform   AppPlatform
+  deviceId   String?
+  model      String?
+  osVersion  String?
+  appVersion String?
+  lastSeenAt DateTime    @default(now())
+  createdAt  DateTime    @default(now())
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushTokens PushToken[]
+
+  @@unique([deviceId])
+  @@index([userId])
+  @@map("devices")
+}
+
+model PushToken {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @db.Uuid
+  deviceId  String?     @db.Uuid
+  token     String      @unique
+  platform  AppPlatform
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("push_tokens")
+}
+
+model AppConfiguration {
+  id              String      @id @default(uuid()) @db.Uuid
+  platform        AppPlatform @unique
+  appName         String      @default("Pak Tenders")
+  logoUrl         String?
+  splashUrl       String?
+  welcomeMessage  String?
+  maintenanceMode Boolean     @default(false)
+  minVersion      String?
+  latestVersion   String?
+  forceUpdate     Boolean     @default(false)
+  featuresJson    Json?
+  storeUrl        String?
+  privacyUrl      String?
+  termsUrl        String?
+  supportUrl      String?
+  updatedAt       DateTime    @updatedAt
+
+  @@map("app_configurations")
+}
+
+model AppAnnouncement {
+  id        String      @id @default(uuid()) @db.Uuid
+  platform  AppPlatform
+  title     String
+  body      String
+  imageUrl  String?
+  startsAt  DateTime?
+  endsAt    DateTime?
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+
+  @@index([platform, isActive])
+  @@map("app_announcements")
+}
+
+// ---------------------------------------------------------------------------
+// Administration
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  actorEmail String?
+  action     String
+  entityType String
+  entityId   String?
+  beforeJson Json?
+  afterJson  Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  valueJson   Json
+  description String?
+  isPublic    Boolean  @default(false)
+  updatedById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("system_settings")
+}
+
+model Integration {
+  id            String            @id @default(uuid()) @db.Uuid
+  key           String            @unique
+  name          String
+  category      String
+  status        IntegrationStatus @default(NOT_CONFIGURED)
+  configJson    Json?
+  lastCheckedAt DateTime?
+  lastError     String?
+  updatedAt     DateTime          @updatedAt
+
+  @@map("integrations")
+}
+
+model ImportJob {
+  id            String    @id @default(uuid()) @db.Uuid
+  type          String
+  fileName      String?
+  status        JobStatus @default(QUEUED)
+  totalRows     Int       @default(0)
+  processedRows Int       @default(0)
+  failedRows    Int       @default(0)
+  errorsJson    Json?
+  createdById   String?   @db.Uuid
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("import_jobs")
+}
+
+model ProcessingJob {
+  id          String    @id @default(uuid()) @db.Uuid
+  type        String
+  payloadJson Json?
+  status      JobStatus @default(QUEUED)
+  attempts    Int       @default(0)
+  lastError   String?
+  scheduledAt DateTime  @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, scheduledAt])
+  @@map("processing_jobs")
+}
+
+model ErrorLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  level     LogLevel @default(ERROR)
+  message   String
+  stack     String?
+  context   Json?
+  requestId String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([level])
+  @@map("error_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Automated tender collection & monitoring
+// ---------------------------------------------------------------------------
+
+model SourceRun {
+  id               String           @id @default(uuid()) @db.Uuid
+  sourceId         String           @db.Uuid
+  jobId            String?
+  status           SourceRunStatus  @default(QUEUED)
+  trigger          SourceRunTrigger @default(SCHEDULE)
+  startedAt        DateTime         @default(now())
+  finishedAt       DateTime?
+  durationMs       Int?
+  itemsFound       Int              @default(0)
+  itemsNew         Int              @default(0)
+  itemsUpdated     Int              @default(0)
+  itemsDuplicate   Int              @default(0)
+  itemsUnchanged   Int              @default(0)
+  itemsReview      Int              @default(0)
+  itemsFailed      Int              @default(0)
+  documentsFetched Int              @default(0)
+  bytesDownloaded  Int              @default(0)
+  errorSummary     String?          @db.Text
+  logJson          Json?
+  createdAt        DateTime         @default(now())
+
+  source    TenderSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  imports   TenderImport[]
+  documents SourceDocument[]
+
+  @@index([sourceId, startedAt])
+  @@index([status, startedAt])
+  @@map("source_runs")
+}
+
+model SourceDocument {
+  id                   String    @id @default(uuid()) @db.Uuid
+  sourceId             String    @db.Uuid
+  runId                String?   @db.Uuid
+  tenderId             String?   @db.Uuid
+  url                  String    @db.Text
+  finalUrl             String?   @db.Text
+  fileName             String?
+  mimeType             String?
+  httpStatus           Int?
+  contentLength        Int?
+  sha256               String?
+  storagePath          String?
+  fetchedAt            DateTime  @default(now())
+  textContent          String?   @db.Text
+  textLanguage         String?
+  pageCount            Int?
+  ocrStatus            OcrStatus @default(NOT_REQUIRED)
+  ocrConfidence        Float?
+  extractionConfidence Float?
+  error                String?   @db.Text
+
+  source     TenderSource       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  run        SourceRun?         @relation(fields: [runId], references: [id], onDelete: SetNull)
+  tender     Tender?            @relation(fields: [tenderId], references: [id], onDelete: SetNull)
+  imports    TenderImport[]
+  provenance TenderProvenance[]
+
+  @@index([sourceId, fetchedAt])
+  @@index([sha256])
+  @@index([tenderId])
+  @@map("source_documents")
+}
+
+model TenderImport {
+  id               String       @id @default(uuid()) @db.Uuid
+  sourceKey        String       @unique
+  sourceId         String       @db.Uuid
+  runId            String?      @db.Uuid
+  externalId       String?
+  sourceUrl        String       @db.Text
+  title            String
+  rawJson          Json
+  rawHash          String?
+  normalizedJson   Json?
+  status           IngestStatus @default(NEW)
+  confidence       Float?
+  changeCount      Int          @default(0)
+  lastSeenAt       DateTime     @default(now())
+  tenderId         String?      @db.Uuid
+  duplicateOfId    String?      @db.Uuid
+  duplicateScore   Float?
+  duplicateSignals Json?
+  reviewNotes      String?      @db.Text
+  documentId       String?      @db.Uuid
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  source   TenderSource            @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  run      SourceRun?              @relation(fields: [runId], references: [id], onDelete: SetNull)
+  tender   Tender?                 @relation(fields: [tenderId], references: [id], onDelete: SetNull)
+  document SourceDocument?         @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  reviews  TenderDuplicateReview[]
+
+  @@index([status, createdAt])
+  @@index([sourceId, externalId])
+  @@index([tenderId])
+  @@map("tender_imports")
+}
+
+model TenderProvenance {
+  id         String                @id @default(uuid()) @db.Uuid
+  tenderId   String                @db.Uuid
+  field      String
+  value      String?               @db.Text
+  source     ExtractionFieldSource @default(SOURCE)
+  confidence Float?
+  documentId String?               @db.Uuid
+  page       Int?
+  note       String?
+  createdAt  DateTime              @default(now())
+
+  tender   Tender          @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  document SourceDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([tenderId, field])
+  @@map("tender_provenance")
+}
+
+model TenderDuplicateReview {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenderId       String             @db.Uuid
+  candidateId    String?            @db.Uuid
+  importId       String?            @db.Uuid
+  matchType      DuplicateMatchType
+  score          Float
+  signalsJson    Json?
+  decision       DuplicateDecision  @default(PENDING)
+  mergedTenderId String?            @db.Uuid
+  reviewedById   String?            @db.Uuid
+  reviewedAt     DateTime?
+  createdAt      DateTime           @default(now())
+
+  tender     Tender        @relation("DuplicatePrimary", fields: [tenderId], references: [id], onDelete: Cascade)
+  candidate  Tender?       @relation("DuplicateCandidate", fields: [candidateId], references: [id], onDelete: SetNull)
+  import     TenderImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  reviewedBy User?         @relation("DuplicateReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([decision, createdAt])
+  @@index([tenderId])
+  @@map("tender_duplicate_reviews")
+}

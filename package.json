@@ -1,0 +1,32 @@
+{
+  "name": "pak-tenders",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pak Tenders - Pakistan's Procurement Opportunities & Tender Intelligence Platform",
+  "packageManager": "pnpm@10.18.3",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:api": "pnpm --filter @paktenders/api dev",
+    "dev:web": "pnpm --filter @paktenders/web dev",
+    "build": "turbo run build",
+    "start": "turbo run start --parallel",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css,prisma}\"",
+    "db:generate": "pnpm --filter @paktenders/database generate",
+    "db:migrate": "pnpm --filter @paktenders/database migrate",
+    "db:deploy": "pnpm --filter @paktenders/database migrate:deploy",
+    "db:push": "pnpm --filter @paktenders/database push",
+    "db:seed": "pnpm --filter @paktenders/database seed",
+    "db:purge-demo": "pnpm --filter @paktenders/database purge:demo",
+    "db:studio": "pnpm --filter @paktenders/database studio",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "prettier": "3.10.1",
+    "turbo": "2.11.11",
+    "typescript": "5.9.3"
+  }
+}
