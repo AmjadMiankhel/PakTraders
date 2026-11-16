@@ -218,6 +218,7 @@ Configure them through environment variables and mark their status in the admin 
 - [Configuration and environment variables](docs/CONFIGURATION.md)
 - [API reference](docs/API.md)
 - [Deployment guide](docs/DEPLOYMENT.md)
+- [Hostinger deployment](docs/HOSTINGER.md)
 - [Tender collection](docs/COLLECTION.md)
 - [Collection completion report](docs/COLLECTION-REPORT.md)
 - [Phase 1 completion report](docs/PHASE-1-REPORT.md)

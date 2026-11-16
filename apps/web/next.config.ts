@@ -1,16 +1,23 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { config as loadEnv } from "dotenv";
 import type { NextConfig } from "next";
 
+// Resolve from this file rather than process.cwd(): managed hosts and custom
+// servers can start the process from the repository root, which previously made
+// the tracing root point outside the project.
+const appDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(appDir, "../..");
+
 // The monorepo keeps one .env at the root. Load it for server-side rendering and
 // for NEXT_PUBLIC_* values that Next inlines at build time.
-loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: false });
-loadEnv({ path: path.resolve(process.cwd(), ".env.local"), override: true });
+loadEnv({ path: path.join(repoRoot, ".env"), override: false });
+loadEnv({ path: path.join(appDir, ".env.local"), override: true });
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  outputFileTracingRoot: path.join(process.cwd(), "../../"),
+  outputFileTracingRoot: repoRoot,
   experimental: {
     optimizePackageImports: ["lucide-react"],
     serverActions: {

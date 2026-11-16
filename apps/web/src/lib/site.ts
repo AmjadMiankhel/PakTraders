@@ -1,4 +1,22 @@
 /**
+ * Normalises a configured origin. Builds fail hard when `new URL("")` receives
+ * an empty platform variable, so an unset, blank or malformed value falls back
+ * to localhost instead of crashing `next build`.
+ */
+export function normalizeSiteUrl(value: string | undefined): string {
+  const candidate = (value ?? "").trim() || "http://localhost:3000";
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return "http://localhost:3000";
+    }
+    return `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "");
+  } catch {
+    return "http://localhost:3000";
+  }
+}
+
+/**
  * Static site configuration and navigation. Values that administrators can edit
  * at runtime (support email, announcement) come from the public settings API;
  * these are the safe defaults used when that endpoint is unavailable.
@@ -7,7 +25,7 @@ export const siteConfig = {
   name: "Pak Tenders",
   shortName: "Pak Tenders",
   domain: "paktenders.pk",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  url: normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
   tagline: "Discover. Analyze. Track. Win.",
   description:
     "Find the latest government and private tenders in Pakistan. Explore PPRA, construction, IT, medical, solar, NGO, consultancy and business procurement opportunities with tender updates and personalized alerts.",

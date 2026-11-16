@@ -1,11 +1,8 @@
 import { cookies } from "next/headers";
 import { ACCESS_COOKIE } from "./auth-cookies";
+import { API_BASE_URL } from "./api-base";
 
-export const API_BASE_URL = (
-  process.env.API_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000"
-).replace(/\/+$/, "");
+export { API_BASE_URL };
 
 export class ApiError extends Error {
   readonly status: number;

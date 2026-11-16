@@ -71,7 +71,12 @@ export class DocumentExtractorService {
   ) {}
 
   get storageRoot(): string {
-    return resolve(process.env.COLLECTION_STORAGE_DIR || join(process.cwd(), "storage", "collection"));
+    const configured = process.env.COLLECTION_STORAGE_DIR?.trim();
+    if (configured) return resolve(configured);
+    // Resolve against the API package, not the process working directory.
+    // Managed hosts start the app from the repository root, which previously
+    // scattered uploads into <root>/storage instead of apps/api/storage.
+    return resolve(__dirname, "../../../..", "storage", "collection");
   }
 
   resolveStoragePath(relativePath: string): string | null {

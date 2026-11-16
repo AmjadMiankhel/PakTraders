@@ -1,12 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { REFRESH_COOKIE } from "@/lib/auth-cookies";
 import { clearAuthCookies, setAuthCookies } from "@/lib/auth-response";
-
-const API_BASE_URL = (
-  process.env.API_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000"
-).replace(/\/+$/, "");
+import { API_BASE_URL } from "@/lib/api-base";
 
 export async function POST(request: NextRequest) {
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;

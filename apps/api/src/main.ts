@@ -19,9 +19,11 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix("v1");
-  // The API is intended to sit behind a reverse proxy. Trust one proxy hop so
-  // per-IP throttling sees the real client address from X-Forwarded-For.
-  app.set("trust proxy", 1);
+  // The API is intended to sit behind a reverse proxy. The number of trusted
+  // hops is configurable because managed hosts (Hostinger's CDN + LiteSpeed)
+  // add more than one. Getting this wrong buckets every visitor under the proxy
+  // IP and causes site-wide 429 responses.
+  app.set("trust proxy", env.TRUST_PROXY_HOPS);
   app.use(
     helmet({
       // The API serves JSON; Swagger UI is the only HTML surface.
@@ -59,8 +61,11 @@ async function bootstrap() {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  await app.listen(env.API_PORT, "0.0.0.0");
-  logger.log(`API listening on ${env.API_PUBLIC_URL} (port ${env.API_PORT})`);
+  // Managed platforms (Hostinger, Render, Railway) assign the port through
+  // PORT and will mark the app unhealthy if it binds anything else.
+  const port = Number(process.env.PORT) || env.API_PORT;
+  await app.listen(port, "0.0.0.0");
+  logger.log(`API listening on ${env.API_PUBLIC_URL} (port ${port})`);
   logger.log(`OpenAPI docs: ${env.API_PUBLIC_URL}/api/docs`);
 }
 

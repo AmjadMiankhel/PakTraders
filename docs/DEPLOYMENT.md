@@ -2,6 +2,8 @@
 
 This guide describes a straightforward production deployment: PostgreSQL, one or more Node processes for the API, one or more Node processes for the website, and a reverse proxy for TLS.
 
+> Managed shared hosting (Hostinger Web Apps) has different constraints: no PostgreSQL, no Redis and no long-running worker. Use [HOSTINGER.md](HOSTINGER.md) for that target.
+
 Phase 1 does not include Dockerfiles, Kubernetes manifests or a CI pipeline. The commands below are the supported baseline; containerisation can be layered on without changing the application.
 
 ---

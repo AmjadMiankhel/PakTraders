@@ -27,6 +27,7 @@ import { SectionHeading, StatTile } from "@/components/ui/feedback";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/states";
 import { apiFetchSafe } from "@/lib/server-api";
+import { siteConfig } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -55,10 +56,10 @@ export default async function HomePage() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "Pak Tenders",
-    url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+    url: siteConfig.url,
     potentialAction: {
       "@type": "SearchAction",
-      target: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/tenders?q={search_term_string}`,
+      target: `${siteConfig.url}/tenders?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };

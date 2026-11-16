@@ -47,9 +47,11 @@ The API refuses to boot if any of these are missing or too short.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `NODE_ENV` | `development` | `development`, `test` or `production` |
-| `API_PORT` | `4000` | API listen port |
+| `PORT` | empty | Platform-assigned listen port. When set (Hostinger, Render, Railway) it overrides `API_PORT` |
+| `API_PORT` | `4000` | API listen port when `PORT` is not set |
 | `API_PUBLIC_URL` | `http://localhost:4000` | Public API origin used in logs and docs |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated browser origins allowed to call the API |
+| `TRUST_PROXY_HOPS` | `1` | Number of reverse proxies in front of the API. Hostinger's CDN + LiteSpeed chain needs `2` |
 | `INTERNAL_API_KEY` | empty | Shared secret sent by the website on server-side API calls so SSR traffic is not counted against the public per-IP limit |
 | `JWT_ACCESS_TTL` | `15m` | Access token lifetime (parsed to seconds) |
 | `JWT_REFRESH_TTL_DAYS` | `30` | Refresh token lifetime in days |

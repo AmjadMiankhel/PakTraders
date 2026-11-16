@@ -7,12 +7,7 @@ import {
   authCookieOptions,
   isJwtExpired,
 } from "./lib/auth-cookies";
-
-const API_BASE_URL = (
-  process.env.API_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000"
-).replace(/\/+$/, "");
+import { API_BASE_URL } from "./lib/api-base";
 
 const PROTECTED_PREFIXES = ["/dashboard", "/admin"];
 

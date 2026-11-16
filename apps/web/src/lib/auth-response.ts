@@ -6,12 +6,7 @@ import {
   REFRESH_MAX_AGE,
   authCookieOptions,
 } from "./auth-cookies";
-
-const API_BASE_URL = (
-  process.env.API_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000"
-).replace(/\/+$/, "");
+import { API_BASE_URL } from "./api-base";
 
 export function setAuthCookies(
   response: NextResponse,

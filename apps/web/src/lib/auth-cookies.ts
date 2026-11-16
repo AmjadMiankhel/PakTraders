@@ -1,3 +1,5 @@
+import { normalizeSiteUrl } from "./site";
+
 /**
  * Auth cookie names and helpers shared by the proxy, route handlers and server
  * components. Tokens are stored in httpOnly cookies so browser JavaScript can
@@ -10,7 +12,7 @@ export const ACCESS_MAX_AGE = 60 * 15; // 15 minutes
 export const REFRESH_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 export function authCookieOptions(maxAge: number) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const siteUrl = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
   // Keep Secure on in production unless the configured site URL is a local
   // http address (local production smoke tests). Missing config stays secure.
   const isLocalHttp = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(siteUrl);

@@ -12,6 +12,9 @@ const envSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   API_PUBLIC_URL: z.string().default("http://localhost:4000"),
   CORS_ORIGINS: z.string().default("http://localhost:3000"),
+  // Number of reverse-proxy hops in front of the API. Hostinger puts a CDN and
+  // LiteSpeed in front of Node, so production usually needs 2.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(1),
 
   JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
   JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),
@@ -91,7 +94,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
 
 export function corsOrigins(env: Env): string[] {
   return env.CORS_ORIGINS.split(",")
-    .map((o) => o.trim())
+    .map((origin) => origin.trim().replace(/\/+$/, ""))
     .filter(Boolean);
 }
 
