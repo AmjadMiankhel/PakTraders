@@ -129,13 +129,26 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
 /** Public API call that returns a fallback instead of throwing. */
 export async function apiFetchSafe<T>(path: string, fallback: T): Promise<T> {
+  const { data } = await apiFetchSafeResult(path, fallback);
+  return data;
+}
+
+/**
+ * Like `apiFetchSafe`, but tells the caller whether the fallback is being used
+ * because the API is unavailable. Pages that would otherwise claim "no results"
+ * can say so honestly instead.
+ */
+export async function apiFetchSafeResult<T>(
+  path: string,
+  fallback: T,
+): Promise<{ data: T; unavailable: boolean }> {
   try {
-    return await apiFetch<T>(path, { anonymous: true });
+    return { data: await apiFetch<T>(path, { anonymous: true }), unavailable: false };
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(`[api] ${path} failed:`, error instanceof Error ? error.message : error);
     }
-    return fallback;
+    return { data: fallback, unavailable: true };
   }
 }
 

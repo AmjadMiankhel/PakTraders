@@ -5,7 +5,8 @@ import { TenderCard } from "@/components/tenders/tender-card";
 import { TenderFilters } from "@/components/tenders/tender-filters";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { EmptyState, Pagination } from "@/components/ui/states";
-import { apiFetchSafe } from "@/lib/server-api";
+import { Alert } from "@/components/ui/feedback";
+import { apiFetchSafe, apiFetchSafeResult } from "@/lib/server-api";
 import { firstValue, parsePositiveInt, tenderQueryString, type RawSearchParams } from "@/lib/search-params";
 
 export const dynamic = "force-dynamic";
@@ -31,12 +32,13 @@ export default async function TendersPage({
   const query = tenderQueryString(params);
   const page = parsePositiveInt(firstValue(params.page), 1);
 
-  const [tenders, categories, provinces, departments] = await Promise.all([
-    apiFetchSafe<Paginated<TenderSummary>>(`/v1/tenders?${query}`, emptyPage),
+  const [tendersResult, categories, provinces, departments] = await Promise.all([
+    apiFetchSafeResult<Paginated<TenderSummary>>(`/v1/tenders?${query}`, emptyPage),
     apiFetchSafe<CategoryDto[]>("/v1/categories", []),
     apiFetchSafe<ProvinceDto[]>("/v1/locations/provinces", []),
     apiFetchSafe<DepartmentDto[]>("/v1/departments?limit=200", []),
   ]);
+  const tenders = tendersResult.data;
 
   const values = {
     q: firstValue(params.q),
@@ -69,9 +71,11 @@ export default async function TendersPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-navy-900 sm:text-3xl">{headline}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">
-            {tenders.meta.total > 0
-              ? `${tenders.meta.total.toLocaleString("en-PK")} tender${tenders.meta.total === 1 ? "" : "s"} matching your filters. Deadlines are shown in Pakistan Standard Time.`
-              : "No tenders match the current filters. Try widening your search."}
+            {tendersResult.unavailable
+              ? "Live tender data is temporarily unavailable. Please try again shortly."
+              : tenders.meta.total > 0
+                ? `${tenders.meta.total.toLocaleString("en-PK")} tender${tenders.meta.total === 1 ? "" : "s"} matching your filters. Deadlines are shown in Pakistan Standard Time.`
+                : "No tenders match the current filters. Try widening your search."}
           </p>
         </div>
         <Link href="/register" className="btn-primary shrink-0">
@@ -115,6 +119,11 @@ export default async function TendersPage({
                 }}
               />
             </>
+          ) : tendersResult.unavailable ? (
+            <Alert tone="warning" title="Tender data is temporarily unavailable">
+              We could not reach the tender service. The directory will fill in as soon as the
+              connection is restored — nothing has been removed.
+            </Alert>
           ) : (
             <EmptyState
               title="No matching tenders"
