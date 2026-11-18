@@ -15,7 +15,7 @@ export function Logo({
   const muted = variant === "light" ? "text-white/60" : "text-ink-500";
 
   return (
-    <Link href="/" className={cn("group inline-flex items-center gap-2.5", className)} aria-label="Pak Tenders home">
+    <Link href="/" className={cn("group inline-flex items-center gap-2.5", className)} title="Pak Tenders home">
       <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-navy-900 via-navy-700 to-emerald-700 shadow-sm">
         <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
           <path

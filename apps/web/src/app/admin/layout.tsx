@@ -36,7 +36,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-white p-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">
                 {initials(user.fullName)}
               </span>
               <div className="min-w-0">

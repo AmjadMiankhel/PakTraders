@@ -82,7 +82,7 @@ export default async function PricingPage() {
               }
             >
               {isPopular ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-700 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
                   Most popular
                 </span>
               ) : null}

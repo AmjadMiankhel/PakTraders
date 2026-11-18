@@ -34,7 +34,7 @@ export function TenderCard({ tender }: { tender: TenderSummary }) {
           <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-navy-400" />
           <dd className="line-clamp-2">
             {tender.department.shortName ?? tender.department.name}
-            {tender.referenceNumber ? <span className="text-ink-500/70"> · {tender.referenceNumber}</span> : null}
+            {tender.referenceNumber ? <span className="text-ink-500"> · {tender.referenceNumber}</span> : null}
           </dd>
         </div>
         <div className="flex items-start gap-2">

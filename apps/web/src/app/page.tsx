@@ -106,28 +106,24 @@ export default async function HomePage() {
             <HeroSearch categories={categories} provinces={provinces} />
           </div>
 
-          <dl className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs text-white/60">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              <dt className="sr-only">Live database</dt>
-              <dd>Live database counts</dd>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-emerald-400" />
-              <dt className="sr-only">Coverage</dt>
-              <dd>All provinces &amp; territories</dd>
-            </div>
-            <div className="flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-emerald-400" />
-              <dt className="sr-only">Timezone</dt>
-              <dd>Deadlines in PKT (UTC+5)</dd>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-emerald-400">Rs</span>
-              <dt className="sr-only">Currency</dt>
-              <dd>Values in PKR</dd>
-            </div>
-          </dl>
+          <ul className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs text-white/60">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 aria-hidden="true" className="h-4 w-4 text-emerald-400" />
+              Live database counts
+            </li>
+            <li className="flex items-center gap-2">
+              <MapPin aria-hidden="true" className="h-4 w-4 text-emerald-400" />
+              All provinces &amp; territories
+            </li>
+            <li className="flex items-center gap-2">
+              <CalendarClock aria-hidden="true" className="h-4 w-4 text-emerald-400" />
+              Deadlines in PKT (UTC+5)
+            </li>
+            <li className="flex items-center gap-2">
+              <span aria-hidden="true" className="text-emerald-400">Rs</span>
+              Values in PKR
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -348,7 +344,7 @@ export default async function HomePage() {
               Compare plans
             </Link>
           </div>
-          <p className="mt-4 text-xs text-white/40">
+          <p className="mt-4 text-xs text-white/60">
             No payment required for the Free plan. Paid plans are not activated until a payment
             gateway is configured.
           </p>
