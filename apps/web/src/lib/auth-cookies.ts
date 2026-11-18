@@ -1,7 +1,7 @@
 import { normalizeSiteUrl } from "./site";
 
 /**
- * Auth cookie names and helpers shared by the proxy, route handlers and server
+ * Auth cookie names and helpers shared by the route handlers and server
  * components. Tokens are stored in httpOnly cookies so browser JavaScript can
  * never read them.
  */
