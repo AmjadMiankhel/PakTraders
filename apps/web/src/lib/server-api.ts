@@ -21,6 +21,20 @@ export async function getAccessToken(): Promise<string | null> {
   return store.get(ACCESS_COOKIE)?.value ?? null;
 }
 
+/**
+ * Server-side render budget for one API call.
+ *
+ * A page renders in one request, so a slow or unreachable API holds the whole
+ * response open. Front proxies (Hostinger's LiteSpeed/CDN among them) close a
+ * long-running stream and the visitor keeps the flushed shell with an empty
+ * <main>. Six seconds is far beyond a healthy API (tens of milliseconds) and
+ * well inside every proxy timeout we deploy behind.
+ */
+const FETCH_TIMEOUT_MS = (() => {
+  const configured = Number(process.env.API_FETCH_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 500 ? configured : 6_000;
+})();
+
 type ApiFetchOptions = Omit<RequestInit, "cache"> & {
   token?: string | null;
   /** Skip reading the access-token cookie (public requests). */
@@ -53,7 +67,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (resolvedToken) headers.set("authorization", `Bearer ${resolvedToken}`);
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15_000);
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
