@@ -20,7 +20,10 @@ export function Alert({
   } as const;
 
   return (
-    <div className={cn("rounded-xl border px-4 py-3 text-sm", tones[tone], className)} role="status">
+    <div
+      className={cn("rounded-xl border px-4 py-3 text-sm", tones[tone], className)}
+      role={tone === "error" ? "alert" : "status"}
+    >
       {title ? <p className="mb-0.5 font-semibold">{title}</p> : null}
       <div className="leading-6">{children}</div>
     </div>
