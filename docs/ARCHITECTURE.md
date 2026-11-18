@@ -18,7 +18,7 @@ This document describes how the Pak Tenders monorepo is put together: the runtim
                     +-----------------------------+
                     |   apps/web (Next.js 16)     |
                     |   RSC pages + route handlers|
-                    |   proxy.ts (token refresh)  |
+                    |   layout auth gate          |
                     +--------------+--------------+
                                    |
                      Server-side  |  Authorization: Bearer <access token>
@@ -85,13 +85,14 @@ Turborepo builds packages before apps (`dependsOn: ["^build"]`). The root `.env`
 
 ### Protected page render
 
-1. `apps/web/src/proxy.ts` matches `/dashboard/:path*` and `/admin/:path*`.
-2. If the access token is missing or within 30 seconds of expiry, the proxy calls `POST /v1/auth/refresh` with the refresh token.
-3. On success it writes rotated cookies and forwards the request with the new access token.
-4. On failure it clears both cookies and redirects to `/login?next=<path>`.
-5. The page/layout also calls `GET /v1/auth/me`; the admin layout additionally checks roles.
+1. `/dashboard/layout.tsx` and `/admin/layout.tsx` call `GET /v1/auth/me` on the server.
+2. A signed-out visitor gets a rendered "sign in to continue" page, not a redirect header. That page calls `POST /api/auth/refresh`; when the refresh cookie is still valid the tokens are rotated and the visitor continues to the page they asked for, otherwise they are sent to `/login?next=<path>`.
+3. A signed-in account without a staff role gets the "staff access required" page instead of the control center.
+4. Individual pages also handle `ApiError` responses so a failed API call never blanks the layout.
 
-The API remains the source of truth. Proxy checks are a UX optimisation, not the authorisation boundary.
+The website deliberately has **no `middleware.ts`/`proxy.ts`**. Hostinger's LiteSpeed front returned an empty `200` for every path matched by Next middleware (including a probe route that middleware only had to pass through), so the gate lives in layouts and route handlers instead. See `docs/HOSTINGER.md`.
+
+The API remains the source of truth. Layout checks are a UX optimisation, not the authorisation boundary: every API route re-checks the bearer token and permissions.
 
 ### Tokens and sessions
 

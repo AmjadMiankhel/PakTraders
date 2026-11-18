@@ -103,6 +103,15 @@ without re-testing on the host.
 
 Give the API its own hostname, for example `api.paktenders.pk` or a second Hostinger subdomain. Never point the website and the API at the same hostname: both need port 443 and Hostinger serves one Web App per domain.
 
+### Current deployment (Hostinger account `u817261572`)
+
+| App | Hostname | Build script | Entry file |
+| --- | --- | --- | --- |
+| Website | `https://upward-seashell-quetzal-73.hostingersite.com` | `build:hostinger:web` | `hostinger/web-server.cjs` |
+| API | `https://mobile-lightgray-mouse-27.hostingersite.com` | `build:hostinger:api` | `hostinger/api-server.cjs` |
+
+Both are Git-connected to `AmjadMiankhel/PakTraders` (`main`), so a push to `main` starts a build. The API additionally needs `DATABASE_URL`; until it is set the process exits during boot and every route answers `503`.
+
 ---
 
 ## 3. Environment variables
@@ -119,10 +128,10 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 
 ```dotenv
 NODE_ENV=production
-NEXT_PUBLIC_SITE_URL=https://gleeful-honeydew-albatross-05.hostingersite.com
-NEXT_PUBLIC_API_URL=https://api.your-domain.example
-API_INTERNAL_URL=https://api.your-domain.example
-SITE_URL=https://gleeful-honeydew-albatross-05.hostingersite.com
+NEXT_PUBLIC_SITE_URL=https://upward-seashell-quetzal-73.hostingersite.com
+NEXT_PUBLIC_API_URL=https://mobile-lightgray-mouse-27.hostingersite.com
+API_INTERNAL_URL=https://mobile-lightgray-mouse-27.hostingersite.com
+SITE_URL=https://upward-seashell-quetzal-73.hostingersite.com
 INTERNAL_API_KEY=<same 48-byte value as the API>
 ```
 
@@ -135,9 +144,9 @@ The website does **not** need `DATABASE_URL`, JWT secrets, Redis or S3.
 ```dotenv
 NODE_ENV=production
 DATABASE_URL=postgresql://user:password@host:5432/paktenders?schema=public&sslmode=require
-API_PUBLIC_URL=https://api.your-domain.example
-CORS_ORIGINS=https://gleeful-honeydew-albatross-05.hostingersite.com
-SITE_URL=https://gleeful-honeydew-albatross-05.hostingersite.com
+API_PUBLIC_URL=https://mobile-lightgray-mouse-27.hostingersite.com
+CORS_ORIGINS=https://upward-seashell-quetzal-73.hostingersite.com
+SITE_URL=https://upward-seashell-quetzal-73.hostingersite.com
 JWT_ACCESS_SECRET=<48-byte random>
 JWT_REFRESH_SECRET=<different 48-byte random>
 JWT_ACCESS_TTL=15m
@@ -234,7 +243,7 @@ Migrations are **not** run during the Hostinger build. Run `pnpm db:deploy` befo
 | Build fails: "Next.js build produced no standalone server" | The Next.js preset was used on this monorepo | Use application type **Other** with `hostinger/web-server.cjs` |
 | Build fails: heap out of memory | Plan memory limit | Move to a Cloud plan, or build locally and deploy an archive |
 | Build fails: `Turbopack is not supported on this platform` | Hostinger glibc 2.28, Turbopack needs 2.29 | Keep `next build --webpack` in `apps/web/package.json` |
-| `/dashboard` or `/admin` returns `200` with an empty body | LiteSpeed + CDN drops a bodiless redirect whose `Location` is a relative path | `src/proxy.ts` builds an absolute login URL with a tiny HTML body — keep it that way |
+| `/dashboard` or `/admin` returns `200` with an empty body | Next.js middleware cannot be served by this stack: every path matched by `middleware.ts`/`proxy.ts` came back as an empty `200`, even when the middleware only called `NextResponse.next()` | The website ships no middleware. Auth gating and token refresh live in `apps/web/src/app/{dashboard,admin}/layout.tsx` + `POST /api/auth/refresh`. Do not reintroduce `middleware.ts` without re-testing on the host |
 | App not responding after a green build | Wrong port or entry file | Entry must be `hostinger/web-server.cjs` (web) / `hostinger/api-server.cjs` (API); both honour `PORT` |
 | `502` / blank page | API crashed on boot | Open **Runtime Logs**; the usual cause is a missing `DATABASE_URL` or JWT secret |
 | Home page renders but all lists are empty | Website cannot reach the API | Set `NEXT_PUBLIC_API_URL` **and** `API_INTERNAL_URL` to the public API URL, then redeploy the website |
@@ -258,5 +267,6 @@ Build logs and runtime logs are under the Web App's **Deployments** and **Runtim
 - **Cold starts.** The first request after idle waits for Next.js/Nest to boot.
 - **One process per app.** Horizontal scaling and worker separation need a VPS or container platform.
 - **No shell.** Migrations, seeds and maintenance scripts run from your machine against the production `DATABASE_URL`.
+- **No Next.js middleware.** This stack answers every middleware-matched path with an empty `200`, so the website has none. Session refresh happens in the auth gate (`apps/web/src/components/auth/auth-gate.tsx` → `POST /api/auth/refresh`) and authorisation is enforced by the API.
 
 The rest of the platform — public catalogue, search, tender detail pages, accounts, dashboards, admin review, manual imports and the API — runs normally.
