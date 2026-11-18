@@ -67,7 +67,7 @@ In production set `CORS_ORIGINS` to the exact site origins, for example `https:/
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Browser-facing site origin; also controls cookie `Secure` behaviour |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:4000` | Browser-facing API origin |
 | `API_INTERNAL_URL` | `http://localhost:4000` | Server-side API origin used by RSC and route handlers |
-| `API_FETCH_TIMEOUT_MS` | `6000` | Per-request budget for server-side API calls; keeps a page render inside front-proxy timeouts when the API is slow |
+| `API_FETCH_TIMEOUT_MS` | `6000` | Per-request budget for server-side API calls; keeps a page render inside front-proxy timeouts when the API is slow. A failed call opens a 10s circuit breaker so an outage does not cost the budget on every request |
 | `SITE_URL` | `http://localhost:3000` | Canonical origin used in password-reset links |
 
 `NEXT_PUBLIC_*` values are inlined at build time. Rebuild the web app after changing them.
