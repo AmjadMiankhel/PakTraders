@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { SignedInRedirect } from "@/components/auth/auth-gate";
 import { LoginForm } from "@/components/auth/login-form";
 import { getCurrentUser } from "@/lib/auth";
 import { firstValue, type RawSearchParams } from "@/lib/search-params";
@@ -16,7 +16,7 @@ export default async function LoginPage({
   searchParams: Promise<RawSearchParams>;
 }) {
   const user = await getCurrentUser();
-  if (user) redirect("/dashboard");
+  if (user) return <SignedInRedirect to="/dashboard" />;
   const params = await searchParams;
   return <LoginForm next={firstValue(params.next)} />;
 }

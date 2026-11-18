@@ -118,6 +118,30 @@ export function AuthRequired({ next, reason }: { next: string; reason?: string }
   );
 }
 
+/**
+ * Rendered instead of a server-side `redirect()` when a signed-in visitor opens
+ * a page that has nothing to show them (the sign-in and register pages).
+ */
+export function SignedInRedirect({ to }: { to: string }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace(to);
+  }, [to, router]);
+
+  return (
+    <div className="container-page py-16 text-center">
+      <p className="text-sm text-ink-500">
+        You are already signed in.{" "}
+        <Link href={to} className="font-semibold text-navy-900 underline">
+          Continue
+        </Link>
+        .
+      </p>
+    </div>
+  );
+}
+
 /** Rendered when a signed-in account lacks staff access to the control center. */
 export function AccessDenied() {
   return (
